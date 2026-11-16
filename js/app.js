@@ -17,7 +17,7 @@
   const CONFIG = window.LIDE_CONFIG || {};
   const TRACKS = CONFIG.tracks || ["搞順自己", "挺好隊友", "發揮影響力"];
   const main = document.getElementById("main");
-  const state = { units: [], quizzes: {}, courses: [], filter: { q: "", track: "", term: "" } };
+  const state = { units: [], quizzes: {}, courses: [], tags: [], filter: { q: "", track: "", term: "", tag: "" } };
 
   /* ---------- 1. 工具函式 ---------- */
 
@@ -71,6 +71,19 @@
     return String(s || "").split(/\n/).map(x => x.trim()).filter(Boolean);
   }
 
+  // 「自我認知、決策工具」或「自我認知,決策工具」都可以
+  function splitTags(s) {
+    return [...new Set(String(s || "").split(/[、,，;；\n]/).map(x => x.trim()).filter(Boolean))];
+  }
+
+  // 一行一則心得，可用「｜」接署名：「原本只想交差…｜第五屆學員」
+  function parseQuotes(s) {
+    return lines(s).map(l => {
+      const i = l.search(/[｜|]/);
+      return i === -1 ? { text: l, by: "" } : { text: l.slice(0, i).trim(), by: l.slice(i + 1).trim() };
+    }).filter(q => q.text);
+  }
+
   function trackIndex(track) {
     const i = TRACKS.indexOf(track);
     return i === -1 ? 0 : i;
@@ -109,7 +122,9 @@
           return m ? { time: m[1], sec: toSeconds(m[1]), title: m[2] || m[1] } : null;
         }).filter(Boolean),
         notes: lines(r["重點筆記"]),
-        handout: r["講義連結"]
+        handout: r["講義連結"],
+        tags: splitTags(r["主題標籤"]),
+        quotes: parseQuotes(r["學員心得"])
       }));
 
     state.quizzes = {};
@@ -141,7 +156,15 @@
       map.get(u.courseId).units.push(u);
     });
     state.courses = [...map.values()];
-    state.courses.forEach(c => c.units.sort((a, b) => a.order - b.order));
+    state.courses.forEach(c => {
+      c.units.sort((a, b) => a.order - b.order);
+      c.tags = [...new Set(c.units.flatMap(u => u.tags))];
+    });
+
+    // 主題標籤依出現次數排序，自動產生篩選按鈕
+    const count = {};
+    state.units.forEach(u => u.tags.forEach(t => { count[t] = (count[t] || 0) + 1; }));
+    state.tags = Object.keys(count).sort((a, b) => count[b] - count[a]);
   }
 
   /* ---------- 3. 學習進度（localStorage） ---------- */
@@ -175,9 +198,10 @@
     const f = state.filter;
     if (f.track && course.track !== f.track) return false;
     if (f.term && course.term !== f.term) return false;
+    if (f.tag && !course.tags.includes(f.tag)) return false;
     if (!f.q) return true;
     const q = f.q.toLowerCase();
-    const hay = [course.title, course.speaker, course.term, course.track]
+    const hay = [course.title, course.speaker, course.term, course.track, course.tags.join(" ")]
       .concat(course.units.flatMap(u => [u.title, u.summary, u.notes.join(" ")]))
       .join(" ").toLowerCase();
     return hay.includes(q);
@@ -220,8 +244,14 @@
             ${terms.map(t => `<option ${f.term === t ? "selected" : ""}>${esc(t)}</option>`).join("")}
           </select>
         </label>
-        ${f.track || f.term || f.q ? '<button type="button" class="clear" id="clear">清除篩選</button>' : ""}
+        ${f.track || f.term || f.q || f.tag ? '<button type="button" class="clear" id="clear">清除篩選</button>' : ""}
       </section>
+
+      ${state.tags.length ? `
+      <section class="tags" aria-label="依主題篩選">
+        <span class="tags-label">主題</span>
+        ${state.tags.map(t => `<button type="button" class="tag-btn" data-tag="${esc(t)}" aria-pressed="${f.tag === t}">${esc(t)}</button>`).join("")}
+      </section>` : ""}
 
       <div id="results"></div>`;
 
@@ -231,10 +261,14 @@
       state.filter.track = state.filter.track === b.dataset.track ? "" : b.dataset.track;
       renderCatalog();
     }));
+    main.querySelectorAll(".tag-btn").forEach(b => b.addEventListener("click", () => {
+      state.filter.tag = state.filter.tag === b.dataset.tag ? "" : b.dataset.tag;
+      renderCatalog();
+    }));
     main.querySelector("#q").addEventListener("input", e => { state.filter.q = e.target.value.trim(); renderResults(); });
     main.querySelector("#term").addEventListener("change", e => { state.filter.term = e.target.value; renderCatalog(); });
     const clear = main.querySelector("#clear");
-    if (clear) clear.addEventListener("click", () => { state.filter = { q: "", track: "", term: "" }; renderCatalog(); });
+    if (clear) clear.addEventListener("click", () => { state.filter = { q: "", track: "", term: "", tag: "" }; renderCatalog(); });
   }
 
   function renderResults() {
@@ -260,6 +294,7 @@
                 <a class="course" href="#/c/${encodeURIComponent(c.id)}/${encodeURIComponent(next.id)}">
                   <span class="course-title">${esc(c.title)}</span>
                   <span class="course-meta">${esc(c.term)}｜${esc(c.speaker)}｜${c.units.length} 個單元</span>
+                  ${c.tags.length ? `<span class="course-tags">${c.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</span>` : ""}
                   <span class="course-progress">
                     <span class="bar" aria-hidden="true"><span style="width:${p.pct}%"></span></span>
                     <span>${p.done === p.total ? "已完成" : p.done ? `完成 ${p.done} / ${p.total}` : "尚未開始"}</span>
@@ -314,6 +349,7 @@
             <h2>${esc(unit.title)}</h2>
             <p class="lesson-meta">${esc(unit.speaker)}${unit.duration ? "｜" + esc(unit.duration) : ""}${quiz.length ? `｜測驗 ${quiz.length} 題` : ""}</p>
             ${unit.summary ? `<p class="lesson-summary">${esc(unit.summary)}</p>` : ""}
+            ${unit.tags.length ? `<p class="lesson-tags">${unit.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</p>` : ""}
           </header>
 
           <div class="video">
@@ -338,6 +374,16 @@
             <h3 id="notes-h">重點筆記</h3>
             <ul>${unit.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
             ${unit.handout ? `<p><a class="handout" href="${esc(unit.handout)}" target="_blank" rel="noopener">開啟講義</a></p>` : ""}
+          </section>` : ""}
+
+          ${unit.quotes.length ? `
+          <section class="quotes" aria-labelledby="quotes-h">
+            <h3 id="quotes-h">學長姐怎麼說</h3>
+            ${unit.quotes.map(q => `
+              <figure>
+                <blockquote>${esc(q.text)}</blockquote>
+                ${q.by ? `<figcaption>${esc(q.by)}</figcaption>` : ""}
+              </figure>`).join("")}
           </section>` : ""}
 
           <section class="quiz" aria-labelledby="quiz-h" id="quiz">

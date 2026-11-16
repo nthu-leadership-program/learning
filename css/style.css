@@ -163,7 +163,7 @@ main:focus { outline: none; }
 .course {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "title progress" "meta progress";
+  grid-template-areas: "title progress" "meta progress" "tags progress";
   column-gap: 24px;
   padding: 16px 4px;
   border-bottom: 1px solid var(--line);
@@ -335,7 +335,7 @@ main:focus { outline: none; }
   .axes { grid-template-columns: 1fr; gap: 10px; }
   .axis { padding: 14px 16px; }
   .axis-name { font-size: 1.2rem; }
-  .course { grid-template-columns: 1fr; grid-template-areas: "title" "meta" "progress"; row-gap: 4px; }
+  .course { grid-template-columns: 1fr; grid-template-areas: "title" "meta" "tags" "progress"; row-gap: 4px; }
   .course-progress { margin-top: 6px; }
   .pager { flex-direction: column; }
   .pager .next { text-align: left; }
@@ -347,3 +347,41 @@ main:focus { outline: none; }
 
 /* 答對的選項用綠色底 */
 .q .opt.answer { background: color-mix(in srgb, var(--right) 10%, var(--surface)); }
+
+/* ---------- 主題標籤 ---------- */
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; }
+.tags-label { color: var(--ink-soft); font-size: 0.9rem; margin-right: 4px; }
+.tag-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.tag-btn:hover { border-color: var(--ink-soft); }
+.tag-btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.course-tags, .lesson-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.course-tags { grid-area: tags; }
+.lesson-tags { margin: 10px 0 0; }
+.tag {
+  font-size: 0.78rem;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink-soft);
+}
+
+/* ---------- 學長姐怎麼說 ---------- */
+.quotes { margin-top: 32px; }
+.quotes figure { margin: 0 0 14px; max-width: 42em; }
+.quotes blockquote {
+  margin: 0;
+  padding-left: 16px;
+  border-left: 3px solid color-mix(in srgb, var(--c) 45%, transparent);
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.8;
+}
+.quotes figcaption { padding-left: 19px; margin-top: 4px; font-size: 0.85rem; color: var(--ink-soft); }
+.quotes figcaption::before { content: "— "; }
