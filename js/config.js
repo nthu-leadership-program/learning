@@ -6,9 +6,9 @@
  */
 window.LIDE_CONFIG = {
   // 課程資料來源（Google 試算表「發布到網路」後的 CSV 網址）
-  // 留空 "" 時，會讀取 site/data/ 資料夾裡的示範資料。
-  unitsCsvUrl: "",
-  quizzesCsvUrl: "",
+  // 留空 "" 時，會讀取 data/ 資料夾裡的示範資料。
+  unitsCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuxQF27-wHiYG6AiTKe3nFXTzvQCo3imcVvFBckBtBl1OdWflVn3CTBHPsS14i5jRsxDpjdf_q2Rf5/pub?gid=0&single=true&output=csv",
+  quizzesCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuxQF27-wHiYG6AiTKe3nFXTzvQCo3imcVvFBckBtBl1OdWflVn3CTBHPsS14i5jRsxDpjdf_q2Rf5/pub?gid=876032557&single=true&output=csv",
 
   // 測驗紀錄（選填）：學員送出測驗後，把成績記到 Google 表單。
   // 設定方式見 docs/07-測驗紀錄設定.md；留空就不記錄。
